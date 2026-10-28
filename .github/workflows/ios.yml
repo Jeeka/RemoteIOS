@@ -5,6 +5,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+defaults:
+  run:
+    shell: bash
 concurrency:
   group: ios-${{ github.ref }}
   cancel-in-progress: true
@@ -30,11 +33,13 @@ jobs:
           name: MiptRDP-iPhone
           path: dist/*
           if-no-files-found: error
+          retention-days: 3
       - name: Upload build diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-diagnostics
+          retention-days: 3
           path: |
             build.log
             .build/device/CMakeFiles/CMakeConfigureLog.yaml

@@ -38,7 +38,7 @@ int main(void) { @autoreleasepool {
 '''
         with tempfile.TemporaryDirectory() as temp:
             source = Path(temp) / "test.m"; binary = Path(temp) / "test"
-            source.write_text('#import <Foundation/Foundation.h>\n' + function + cases)
+            source.write_text('#import <Foundation/Foundation.h>\n#import <arpa/inet.h>\n' + function + cases)
             subprocess.run(["clang","-fno-objc-arc","-framework","Foundation",str(source),"-o",str(binary)],check=True)
             subprocess.run([str(binary)],check=True)
 

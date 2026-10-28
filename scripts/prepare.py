@@ -15,7 +15,7 @@ def replace(path, old, new):
     path.write_text(content.replace(old, new), encoding="utf-8")
 
 def prepare():
-    lock = json.loads((ROOT / "freerdp.lock.json").read_text())
+    lock = json.loads((ROOT / "freerdp.lock.json").read_text(encoding="utf-8"))
     archive = ROOT / ".cache/freerdp.tar.gz"
     archive.parent.mkdir(exist_ok=True)
     if not archive.exists():
@@ -37,11 +37,18 @@ def prepare():
     app = client / "Mipt"
     shutil.copytree(ROOT / "App", app)
     shutil.copyfile(app / "SceneDelegate.m", client / "SceneDelegate.m")
-    plist = (client / "iFreeRDP.plist.in").read_text()
+    for icon in (ROOT / "Resources").glob("Icon*.png"):
+        shutil.copyfile(icon, client / "Resources" / icon.name)
+    replace(client / "CMakeLists.txt", "set(IOS_CLIENT_RESOURCES_ABOUT_PAGE", '''list(APPEND IOS_CLIENT_RESOURCES_PNGS
+  Resources/Icon60@2x.png Resources/Icon60@3x.png
+  Resources/Icon76.png Resources/Icon76@2x.png Resources/Icon83.5@2x.png)
+
+set(IOS_CLIENT_RESOURCES_ABOUT_PAGE''')
+    plist = (client / "iFreeRDP.plist.in").read_text(encoding="utf-8")
     plist = plist.replace("<key>CFBundleDisplayName</key>\n\t<string>@PROJECT_NAME@</string>", "<key>CFBundleDisplayName</key>\n\t<string>MiptRDP</string>")
     plist = plist.replace("FreeRDP connects to remote desktops and gateways on your local network.", "MiptRDP подключается к рабочим компьютерам и шлюзам в локальной сети.")
-    (client / "iFreeRDP.plist.in").write_text(plist)
-    with (client / "CMakeLists.txt").open("a") as out:
+    (client / "iFreeRDP.plist.in").write_text(plist, encoding="utf-8")
+    with (client / "CMakeLists.txt").open("a", encoding="utf-8") as out:
         out.write('''
 # MiptRDP overlay. Upstream files retain their original licenses.
 target_sources(${PROJECT_NAME} PRIVATE Mipt/MiptApp.m)
@@ -92,9 +99,9 @@ set(IOS_CMAKE_CACHE_ARGS)''')
     replace(native_ui, '(fingerprint) ? [NSString stringWithUTF8String:subject] : @""', '(fingerprint) ? [NSString stringWithUTF8String:fingerprint] : @""')
     replace(native_ui, '@"fingerprint", nil];', '@"fingerprint", (host) ? [NSString stringWithUTF8String:host] : @"", @"hostname", nil];')
     # Check the predicate as well as waiting, so a fast UI response cannot be lost.
-    ui = native_ui.read_text()
+    ui = native_ui.read_text(encoding="utf-8")
     ui = ui.replace('[[mfi->session uiRequestCompleted] wait];', 'while (![params objectForKey:@"result"]) [[mfi->session uiRequestCompleted] wait];')
-    native_ui.write_text(ui)
+    native_ui.write_text(ui, encoding="utf-8")
     replace(controller, '''- (void)handleSingleTap:(UITapGestureRecognizer *)gesture
 {
 \tif (_pointer_is_indirect)''', '''- (void)miptToggleTouch:(UIButton *)sender

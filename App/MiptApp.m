@@ -5,6 +5,7 @@
 #import "RDPSession.h"
 #import "RDPSessionViewController.h"
 #import "MiptEndpoint.h"
+#import <arpa/inet.h>
 
 static UIColor *Background(void) { return [UIColor colorWithRed:.035 green:.055 blue:.10 alpha:1]; }
 static void Message(UIViewController *vc, NSString *title, NSString *body) {
@@ -97,6 +98,7 @@ NSDictionary *MiptEndpoint(NSString *input, NSInteger defaultPort) {
         host = [[host componentsSeparatedByString:@":"] firstObject];
     }
     if (!host.length || [host rangeOfCharacterFromSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]].location != NSNotFound || [host containsString:@"/"] || [host containsString:@"\""] || [host containsString:@"'"] || [host containsString:@","] || [host containsString:@"["] || [host containsString:@"]"]) return nil;
+    if ([host containsString:@":"]) { struct in6_addr address; if (inet_pton(AF_INET6,host.UTF8String,&address) != 1) return nil; }
     NSInteger number = defaultPort;
     if (port) {
         if (!port.length || [port rangeOfCharacterFromSet:[[NSCharacterSet decimalDigitCharacterSet] invertedSet]].location != NSNotFound) return nil;
@@ -194,7 +196,7 @@ static void SetIdentity(ConnectionParams *params, NSString *prefix, NSString *us
     });
 }
 - (void)session:(RDPSession *)session verifyCertificateWithParams:(NSMutableDictionary *)params {
-    NSString *details = [NSString stringWithFormat:@"Не удалось подтвердить сертификат сервера %@.\\n\\nИздатель: %@\\n\\nSHA-256: %@",params[@"hostname"] ?: @"",params[@"issuer"] ?: @"",params[@"fingerprint"] ?: @""];
+    NSString *details = [NSString stringWithFormat:@"Не удалось подтвердить сертификат сервера %@.\n\nИздатель: %@\n\nОтпечаток: %@",params[@"hostname"] ?: @"",params[@"issuer"] ?: @"",params[@"fingerprint"] ?: @""];
     UIAlertController *a = [UIAlertController alertControllerWithTitle:@"Сертификат сервера" message:details preferredStyle:UIAlertControllerStyleAlert];
     [a addAction:[UIAlertAction actionWithTitle:@"Отмена" style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
         [[session uiRequestCompleted] lock]; params[@"result"] = @NO; [[session uiRequestCompleted] signal]; [[session uiRequestCompleted] unlock];
